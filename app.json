@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Instagram Messenger",
+    "slug": "instagram-messenger",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.brade.instagrammessenger",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to take photos and videos to send in Instagram messages.",
+        "NSMicrophoneUsageDescription": "Used to record voice notes and videos to send in Instagram messages.",
+        "NSPhotoLibraryUsageDescription": "Used to send photos and videos from your library in Instagram messages.",
+        "NSPhotoLibraryAddUsageDescription": "Used to save photos and videos from Instagram messages.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
