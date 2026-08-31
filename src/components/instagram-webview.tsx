@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import {
 import { INBOX_URL } from '../constants/instagram';
 import {
   HIDE_APP_INTERSTITIAL_SCRIPT,
+  KEYBOARD_GUARD_SCRIPT,
   SPA_NAV_WATCHER_SCRIPT,
 } from '../constants/injected-scripts';
 import {
@@ -23,10 +25,12 @@ import {
   isAuthUrl,
   isInboxListUrl,
   isInboxUrl,
+  isSharedMediaPath,
   shouldShowInboxButton,
 } from '../utils/is-allowed-url';
 
-const INJECTED_BEFORE_LOAD = `${SPA_NAV_WATCHER_SCRIPT}\n${HIDE_APP_INTERSTITIAL_SCRIPT}`;
+const INJECTED_BEFORE_LOAD = `${SPA_NAV_WATCHER_SCRIPT}\n${HIDE_APP_INTERSTITIAL_SCRIPT}\n${KEYBOARD_GUARD_SCRIPT}`;
+const INJECTED_AFTER_LOAD = `${HIDE_APP_INTERSTITIAL_SCRIPT}\n${KEYBOARD_GUARD_SCRIPT}`;
 
 export function InstagramWebView() {
   const insets = useSafeAreaInsets();
@@ -73,6 +77,13 @@ export function InstagramWebView() {
     (nav: WebViewNavigation) => {
       setCurrentUrl(nav.url);
       setCanGoBack(nav.canGoBack);
+      try {
+        if (isSharedMediaPath(new URL(nav.url).pathname)) {
+          Keyboard.dismiss();
+        }
+      } catch {
+        // Ignore malformed navigation URLs.
+      }
       if (classifyNavigation(nav.url, true) === 'block-to-inbox') {
         goToInbox();
       }
@@ -84,8 +95,19 @@ export function InstagramWebView() {
     (event: WebViewMessageEvent) => {
       try {
         const data = JSON.parse(event.nativeEvent.data) as { type?: string; url?: string };
+        if (data.type === 'dismiss-keyboard') {
+          Keyboard.dismiss();
+          return;
+        }
         if (data.type === 'nav' && typeof data.url === 'string') {
           setCurrentUrl(data.url);
+          try {
+            if (isSharedMediaPath(new URL(data.url).pathname)) {
+              Keyboard.dismiss();
+            }
+          } catch {
+            // Ignore malformed URLs from the page.
+          }
           if (classifyNavigation(data.url, true) === 'block-to-inbox') {
             goToInbox();
           }
@@ -181,13 +203,13 @@ export function InstagramWebView() {
           startInLoadingState
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
-          keyboardDisplayRequiresUserAction={false}
+          keyboardDisplayRequiresUserAction
           allowsFullscreenVideo
           allowsBackForwardNavigationGestures
           setSupportMultipleWindows={false}
           originWhitelist={['*']}
           injectedJavaScriptBeforeContentLoaded={INJECTED_BEFORE_LOAD}
-          injectedJavaScript={HIDE_APP_INTERSTITIAL_SCRIPT}
+          injectedJavaScript={INJECTED_AFTER_LOAD}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
           onNavigationStateChange={onNavigationStateChange}
           onMessage={onMessage}
