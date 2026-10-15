@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -32,6 +33,9 @@ import {
 const INJECTED_BEFORE_LOAD = `${SPA_NAV_WATCHER_SCRIPT}\n${HIDE_APP_INTERSTITIAL_SCRIPT}\n${KEYBOARD_GUARD_SCRIPT}`;
 const INJECTED_AFTER_LOAD = `${HIDE_APP_INTERSTITIAL_SCRIPT}\n${KEYBOARD_GUARD_SCRIPT}`;
 
+const DISCLAIMER =
+  'Quiet DMs is an independent app and is not affiliated with, endorsed by, or sponsored by Instagram or Meta.';
+
 export function InstagramWebView() {
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
@@ -39,6 +43,7 @@ export function InstagramWebView() {
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const goToInbox = useCallback(() => {
     setHasError(false);
@@ -161,9 +166,17 @@ export function InstagramWebView() {
           ) : (
             <View style={styles.barButton} />
           )}
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="About Quiet DMs"
+            onPress={() => setAboutOpen(true)}
+            style={styles.titleButton}
+          >
+            <Text style={styles.title} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={styles.aboutHint}>About</Text>
+          </Pressable>
           <View style={styles.barRight}>
             {showInbox ? (
               <Pressable
@@ -188,6 +201,12 @@ export function InstagramWebView() {
           </View>
         </View>
       </View>
+
+      {isAuthUrl(currentUrl) ? (
+        <View style={styles.disclaimer}>
+          <Text style={styles.disclaimerText}>{DISCLAIMER}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.webWrap}>
         <WebView
@@ -234,7 +253,7 @@ export function InstagramWebView() {
 
         {loading && !hasError ? (
           <View pointerEvents="none" style={styles.loading}>
-            <ActivityIndicator color="#0095F6" size="large" />
+            <ActivityIndicator color="#A9CBBC" size="large" />
           </View>
         ) : null}
 
@@ -242,8 +261,8 @@ export function InstagramWebView() {
           <View style={styles.error}>
             <Text style={styles.errorTitle}>Could not load messages</Text>
             <Text style={styles.errorBody}>
-              Check your connection, then try again. Instagram may also be blocking this
-              browser session — sign in with username and password if Facebook login fails.
+              Check your connection, then try again. The site may block this browser session.
+              If one sign-in option fails, try your username and password.
             </Text>
             <Pressable accessibilityRole="button" onPress={reload} style={styles.retry}>
               <Text style={styles.retryText}>Retry</Text>
@@ -251,9 +270,37 @@ export function InstagramWebView() {
             <Pressable accessibilityRole="button" onPress={goToInbox} style={styles.retrySecondary}>
               <Text style={styles.barButtonTextAccent}>Open inbox</Text>
             </Pressable>
+            <Text style={styles.errorDisclaimer}>{DISCLAIMER}</Text>
           </View>
         ) : null}
       </View>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={aboutOpen}
+        onRequestClose={() => setAboutOpen(false)}
+      >
+        <Pressable
+          accessibilityLabel="Dismiss about"
+          accessibilityRole="button"
+          onPress={() => setAboutOpen(false)}
+          style={styles.modalBackdrop}
+        >
+          <Pressable accessibilityRole="none" onPress={() => {}} style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Quiet DMs</Text>
+            <Text style={styles.modalBody}>{DISCLAIMER}</Text>
+            <Pressable
+              accessibilityLabel="Close about"
+              accessibilityRole="button"
+              onPress={() => setAboutOpen(false)}
+              style={styles.modalClose}
+            >
+              <Text style={styles.modalCloseText}>Close</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -290,15 +337,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   barButtonTextAccent: {
-    color: '#0095F6',
+    color: '#A9CBBC',
     fontSize: 16,
     fontWeight: '700',
   },
+  titleButton: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 2,
+  },
   title: {
     color: '#fff',
-    flex: 1,
     fontSize: 16,
     fontWeight: '700',
+    textAlign: 'center',
+    width: '100%',
+  },
+  aboutHint: {
+    color: '#A9CBBC',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  disclaimer: {
+    backgroundColor: '#1B2830',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  disclaimerText: {
+    color: '#E4E0D6',
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'center',
   },
   webWrap: {
@@ -336,7 +406,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retry: {
-    backgroundColor: '#0095F6',
+    backgroundColor: '#2F6F62',
     borderRadius: 8,
     marginTop: 8,
     paddingHorizontal: 20,
@@ -349,5 +419,53 @@ const styles = StyleSheet.create({
   },
   retrySecondary: {
     paddingVertical: 8,
+  },
+  errorDisclaimer: {
+    color: '#A8A8A8',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  modalBackdrop: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 28,
+  },
+  modalCard: {
+    backgroundColor: '#1B2830',
+    borderRadius: 16,
+    gap: 12,
+    maxWidth: 420,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    width: '100%',
+  },
+  modalTitle: {
+    color: '#F4F0E6',
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  modalBody: {
+    color: '#E4E0D6',
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  modalClose: {
+    alignSelf: 'center',
+    backgroundColor: '#2F6F62',
+    borderRadius: 8,
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
